@@ -292,12 +292,11 @@ in {
 
     # add hosts to /etc/hosts file
     # ----------------------------
-    networking.extraHosts = foldl (a: b: a + b) "\n"
+    networking.extraHosts = concatStringsSep "\n"
     (flatten
       (flip mapAttrsToList activeNetworks (name: network:
-        (flip mapAttrsToList network.hosts (hostName: hostConfig: ''
-          ${hostConfig.tincIp} ${hostName}.${name}
-        ''
+        (flip mapAttrsToList network.hosts (hostName: hostConfig:
+          "${hostConfig.tincIp} ${hostName}.${name}"
         ))
       ))
     );
@@ -336,11 +335,11 @@ in {
                 subnets = concatMapStrings (subnet: "Subnet = ${subnet}\n")
                   ([ hostConfig.tincIp ] ++ (wrapNullable hostConfig.tincSubnet));
                 addresses = concatMapStrings (name: "Address = ${name} ${toString data.port}\n");
-                extraConfig = if ( hostConfig.extraConfig != null ) then ''
+                extraConfig = optionalString (hostConfig.extraConfig != null) ''
                   # Extra Config - Start
                   ${hostConfig.extraConfig}
                   # Extra Config - End
-                '' else "";
+                '';
               in ''
                 ${addresses hostConfig.realAddress}
                 ${subnets}
@@ -357,11 +356,11 @@ in {
           mode = "0444";
           text = let
             tincConnect = concatMapStrings (name: "ConnectTo = ${name}\n");
-            extraConfig = if ( data.extraConfig != null ) then ''
+            extraConfig = optionalString ( data.extraConfig != null ) ''
               # Extra Config - Start
               ${data.extraConfig}
               # Extra Config - End
-            '' else "";
+            '';
           in ''
             Name                  = ${data.name}
             DeviceType            = ${data.interfaceType}
