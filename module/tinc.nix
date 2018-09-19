@@ -96,6 +96,7 @@ in {
             Port to bind tinc service to.
           '';
         };
+        openPort = mkEnableOption "open firewall for the given or default port";
         connectTo = mkOption {
           type        = with types; listOf str;
           default     = [];
@@ -293,8 +294,13 @@ in {
 
     # Open firewall for tinc connection service
     # -----------------------------------------
-    networking.firewall.allowedUDPPorts = mkMerge (flip mapAttrsToList activeNetworks (_: data: [ data.port ] ));
-    networking.firewall.allowedTCPPorts = mkMerge (flip mapAttrsToList activeNetworks (_: data: [ data.port ] ));
+    networking.firewall =
+    let
+      optionalPort = data: if (data.openPort) then [ data.port ] else [];
+    in {
+      allowedUDPPorts = mkMerge (flip mapAttrsToList activeNetworks (_: data: optionalPort data ));
+      allowedTCPPorts = mkMerge (flip mapAttrsToList activeNetworks (_: data: optionalPort data ));
+    };
 
 
     # add hosts to /etc/hosts file
