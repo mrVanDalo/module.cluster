@@ -23,6 +23,16 @@ let
     else
       [];
 
+  # parse Url ( a bit overkill maybe )
+  parseUrl = s: let
+    parse = builtins.match "(([^@]+)@)?(([^:/]+))?(:([^/]+))?(/.*)?" s;
+    elemAt' = xs: i: if lib.length xs > i then lib.elemAt xs i else null;
+  in {
+    user = (elemAt' parse 1);
+    host = (elemAt' parse 3);
+    port = (elemAt' parse 5);
+    path = (elemAt' parse 6);
+  };
 
   # module starts here!
   cfg = config.module.cluster.services.tinc;
@@ -331,7 +341,15 @@ in {
               let
                 subnets = concatMapStrings (subnet: "Subnet = ${subnet}\n")
                   ([ hostConfig.tincIp ] ++ (wrapNullable hostConfig.tincSubnet));
-                addresses = concatMapStrings (name: "Address = ${name} ${toString data.port}\n");
+
+                addresses = concatMapStrings (url:
+                  let
+                    parsed = parseUrl url;
+                  in
+                    "Address = ${parsed.host} ${toString (if (parsed.port != null) then parsed.port else data.port)}\n"
+                );
+
+
                 extraConfig = optionalString (hostConfig.extraConfig != null) ''
                   # Extra Config - Start
                   ${hostConfig.extraConfig}
@@ -340,7 +358,7 @@ in {
               in ''
                 ${addresses hostConfig.realAddress}
                 ${subnets}
-                # Port   = ${toString data.port}
+                Port   = ${toString data.port}
                 ${extraConfig}
                 ${hostConfig.publicKey}
               '';
