@@ -25,157 +25,154 @@ let
 
 
   # module starts here!
-
   cfg = config.module.cluster.services.tinc;
-
-  hostsElement = {
-    options = {
-      realAddress = mkOption {
-        type        = with types; listOf str;
-        default     = [];
-        description = ''
-          Realworld Addresses of the Host, DNS is also possible.
-          This Address is used in the 'connectTo' parameter.
-        '';
-      };
-      publicKey = mkOption {
-        type        = types.str;
-        description = ''
-          The publi keys  Ed25519 and RSA as String (not as the path)
-
-          Example :
-            nix-shell -p tinc_pre --run "tinc generate-keys 4096"
-            cat *.pub
-        '';
-      };
-      tincIp = mkOption {
-        type        = with types; nullOr str;
-        default     = null;
-        description = ''
-          Ip of the Host in the VPN Mesh
-
-          Example: 10.1.2.3
-        '';
-      };
-      tincSubnet = mkOption {
-        type        = with types; nullOr str;
-        default     = null;
-        description = ''
-          Subnet of Host in the VPN Mesh (not to confuse with networkSubnet)
-          (will be merged with the networkSubnet, own subnet will be skipped)
-          This is useful to connect subnets over tinc.
-
-          Example : 10.1.2.0/24
-        '';
-      };
-      extraConfig = mkOption {
-        type        = with types; nullOr str;
-        default     = null;
-        description = ''
-          Additional config which is not coverd by other parameters.
-          See : https://www.tinc-vpn.org/documentation-1.1/Host-configuration-variables.html
-        '';
-      };
-    };
-  };
-
-  networkElement = {
-    options = {
-      enable = mkEnableOption "enable this tinc network";
-      debugLevel = mkOption {
-        default = 0;
-        type = types.addCheck types.int (l: l >= 0 && l <= 5);
-        description = ''
-          The amount of debugging information to add to the log. 0 means little
-          logging while 5 is the most logging. <command>man tincd</command> for
-          more details.
-        '';
-      };
-      package = mkOption {
-        type = types.package;
-        default = pkgs.tinc_pre;
-        defaultText = "pkgs.tinc_pre";
-        description = ''
-          Package to use for the tinc daemon's binary.
-        '';
-      };
-      interfaceType = mkOption {
-        default     = "tap";
-        type        = types.enum [ "tun" "tap" ];
-        description = ''
-          Type of virtual interface used for the network connection
-        '';
-      };
-      privateRsaKeyFile = mkOption {
-        type        = types.path;
-        description = ''
-          Private key to use for transport encryption
-        '';
-      };
-      privateEd25519KeyFile = mkOption {
-        type        = types.path;
-        description = ''
-          Private key to use for transport encryption
-        '';
-      };
-      name = mkOption {
-        type        = types.str;
-        default     = config.networking.hostName;
-        description = ''
-          Name of the host known to the tinc network
-
-          This parameter needs to be a key in the hosts parameter,
-          we use it to determin the configuration from there.
-        '';
-      };
-      port = mkOption {
-        type        = types.int ;
-        default     = 655;
-        description = ''
-          Port to bind tinc service to
-        '';
-      };
-      connectTo = mkOption {
-        type        = with types; listOf str;
-        default     = [];
-        description = ''
-          Hosts to connect to create the mesh.
-        '';
-      };
-      hosts = mkOption {
-        type        = with types; attrsOf (submodule hostsElement);
-        description = ''
-          Known hosts in the network.
-        '';
-      };
-      networkSubnet = mkOption {
-        type        = with types; nullOr str;
-        default     = null;
-        description = ''
-          Network subnet what is behind this interface
-          (will be merged with the hosts.tincSubnet)
-
-          Example : 10.1.0.0/16
-        '';
-      };
-      extraConfig = mkOption {
-        type        = with types; nullOr str;
-        default     = null;
-        description = ''
-          Additional config which is not coverd by other parameters.
-          See : https://www.tinc-vpn.org/documentation-1.1/Host-configuration-variables.html
-        '';
-      };
-    };
-  };
 
 in {
 
   options.module.cluster.services.tinc = mkOption {
-    type        = types.attrsOf (types.submodule networkElement);
+    type        = types.attrsOf (types.submodule ({name, ...}:{
+      options = {
+        enable = mkEnableOption "enable this tinc network";
+        debugLevel = mkOption {
+          default = 0;
+          type = types.addCheck types.int (l: l >= 0 && l <= 5);
+          description = ''
+            The amount of debugging information to add to the log. 0 means little
+            logging while 5 is the most logging. <command>man tincd</command> for
+            more details.
+          '';
+        };
+        package = mkOption {
+          type = types.package;
+          default = pkgs.tinc_pre;
+          defaultText = "pkgs.tinc_pre";
+          description = ''
+            Package to use for the tinc daemon's binary.
+          '';
+        };
+        interfaceType = mkOption {
+          default     = "tap";
+          type        = types.enum [ "tun" "tap" ];
+          description = ''
+            Type of virtual interface used for the network connection
+          '';
+        };
+        privateRsaKeyFile = mkOption {
+          type        = types.path;
+          description = ''
+            Private key to use for transport encryption
+          '';
+        };
+        privateEd25519KeyFile = mkOption {
+          type        = types.path;
+          description = ''
+            Private key to use for transport encryption
+          '';
+        };
+        name = mkOption {
+          type        = types.str;
+          default     = config.networking.hostName;
+          description = ''
+            Name of the host known to the tinc network
+
+            This parameter needs to be a key in the hosts parameter,
+            we use it to determin the configuration from there.
+          '';
+        };
+        port = mkOption {
+          type        = types.int ;
+          default     = 655;
+          description = ''
+            Port to bind tinc service to.
+          '';
+        };
+        connectTo = mkOption {
+          type        = with types; listOf str;
+          default     = [];
+          description = ''
+            Hosts to connect to create the mesh.
+          '';
+        };
+        hosts = mkOption {
+          type = with types; attrsOf (submodule {
+            options = {
+              realAddress = mkOption {
+                type        = with types; listOf str;
+                default     = [];
+                description = ''
+                  Realworld Addresses of the Host, DNS is also possible.
+                  This Address is used in the 'connectTo' parameter.
+                  you can also use :<port> to set a different port to use sslh
+                  for example.
+                '';
+              };
+              publicKey = mkOption {
+                type        = types.str;
+                description = ''
+                  The publi keys  Ed25519 and RSA as String (not as the path)
+
+                  Example :
+                    nix-shell -p tinc_pre --run "tinc generate-keys 4096"
+                    cat *.pub
+                '';
+              };
+              tincIp = mkOption {
+                type        = with types; nullOr str;
+                default     = null;
+                description = ''
+                  Ip of the Host in the VPN Mesh
+
+                  Example: 10.1.2.3
+                '';
+              };
+              tincSubnet = mkOption {
+                type        = with types; nullOr str;
+                default     = null;
+                description = ''
+                  Subnet of Host in the VPN Mesh (not to confuse with networkSubnet)
+                  (will be merged with the networkSubnet, own subnet will be skipped)
+                  This is useful to connect subnets over tinc.
+
+                  Example : 10.1.2.0/24
+                '';
+              };
+              extraConfig = mkOption {
+                type        = with types; nullOr str;
+                default     = null;
+                description = ''
+                  Additional config which is not coverd by other parameters.
+                  See : https://www.tinc-vpn.org/documentation-1.1/Host-configuration-variables.html
+                '';
+              };
+            };
+          });
+          description = ''
+            Known hosts in the network.
+          '';
+        };
+        networkSubnet = mkOption {
+          type        = with types; nullOr str;
+          default     = null;
+          description = ''
+            Network subnet what is behind this interface
+            (will be merged with the hosts.tincSubnet)
+
+            Example : 10.1.0.0/16
+          '';
+        };
+        extraConfig = mkOption {
+          type        = with types; nullOr str;
+          default     = null;
+          description = ''
+            Additional config which is not coverd by other parameters.
+            See : https://www.tinc-vpn.org/documentation-1.1/Host-configuration-variables.html
+          '';
+        };
+      };}));
     description = ''
       A powerfull VPN Mesh.
     '';
+
   };
 
   config = let
